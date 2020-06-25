@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/muhammetaliakbay/reactive-library.svg?branch=master)](https://travis-ci.org/muhammetaliakbay/reactive-library)
+
 # Reactive-Library
 
 Foobar is a TypeScript library for dealing with reactive implementations of essential data structures.
@@ -10,7 +12,9 @@ Use your favorite package manager to add **@muhammetaliakbay/reactive-library** 
 yarn add @muhammetaliakbay/reactive-library
 ```
 
-## ReactiveSet Usage
+## ReactiveSet
+
+### Example
 
 ```typescript
 import {ReactiveSet} from '@muhammetaliakbay/reactive-library';
