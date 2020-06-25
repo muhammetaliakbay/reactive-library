@@ -7,7 +7,7 @@ Reactive-Library is a TypeScript library for dealing with reactive implementatio
 Use your favorite package manager to add **@muhammetaliakbay/reactive-library** as your dependency.
 
 ```bash
-yarn add @muhammetaliakbay/reactive-library
+npm install @muhammetaliakbay/reactive-library --save
 ```
 
 ## API Documents (TypeDoc)
