@@ -1,10 +1,19 @@
 {
   "name": "@muhammetaliakbay/reactive-library",
-  "version": "0.0.0",
+  "version": "0.0.0-fix1",
+  "description": "Reactive-Library is a TypeScript library for dealing with reactive implementations of essential data structures.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "repository": "https://github.com/muhammetaliakbay/reactive-library",
   "author": "https://github.com/muhammetaliakbay",
+  "keywords": [
+    "rxjs",
+    "set",
+    "observable",
+    "typescript",
+    "library",
+    "reactive"
+  ],
   "scripts": {
     "clean": "rimraf ./lib",
     "build": "tsc",
