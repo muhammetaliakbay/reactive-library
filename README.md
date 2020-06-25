@@ -1,6 +1,5 @@
-[![Build Status](https://travis-ci.org/muhammetaliakbay/reactive-library.svg?branch=master)](https://travis-ci.org/muhammetaliakbay/reactive-library)
-
 # Reactive-Library
+[![Build Status](https://travis-ci.org/muhammetaliakbay/reactive-library.svg?branch=master)](https://travis-ci.org/muhammetaliakbay/reactive-library)[![GitHub](https://img.shields.io/github/license/muhammetaliakbay/reactive-library)](https://opensource.org/licenses/GPL-3.0)[![npm (scoped)](https://img.shields.io/npm/v/@muhammetaliakbay/reactive-library)](https://www.npmjs.com/package/@muhammetaliakbay/reactive-library)
 
 Reactive-Library is a TypeScript library for dealing with reactive implementations of essential data structures.
 
@@ -14,7 +13,7 @@ yarn add @muhammetaliakbay/reactive-library
 
 ## API Documents (TypeDoc)
 
-Find detailed api documentations here https://reactive-library.muhammetaliakbay.com/.
+Find detailed api documentations here <https://reactive-library.muhammetaliakbay.com/>.
 
 ## ReactiveSet
 
