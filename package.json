@@ -6,7 +6,7 @@
   "types": "lib/index.d.ts",
   "repository": "https://github.com/muhammetaliakbay/reactive-library",
   "author": "https://github.com/muhammetaliakbay",
-  "license": "GNUv3",
+  "license": "GPL-3.0",
   "keywords": [
     "rxjs",
     "set",
@@ -21,7 +21,7 @@
   "scripts": {
     "build": "tsc",
     "build-doc": "typedoc",
-    "test": "ts-mocha src/**/*.spec.ts",
+    "test": "mocha -r ts-node/register src/**/*.spec.ts",
     "prepare": "npm run build",
     "prepublishOnly": "npm test"
   },
@@ -30,14 +30,14 @@
   },
   "devDependencies": {
     "tslib": "^2.0.0",
+    "ts-node": "^8.10.2",
     "typescript": "^3.9.3",
-    "@types/node": "^14.0.13",
-    "ts-mocha": "^7.0.0",
-    "mocha": "^7.X.X",
-    "@types/mocha": "^7.0.2",
+    "mocha": "^8.0.1",
     "chai": "^4.2.0",
-    "@types/chai": "^4.2.11",
-    "typedoc": "^0.17.7"
+    "typedoc": "^0.17.7",
+    "@types/node": "^14.0.13",
+    "@types/mocha": "^7.0.2",
+    "@types/chai": "^4.2.11"
   },
   "dependencies": {
     "rxjs": "^6.5.5"
