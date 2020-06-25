@@ -1,6 +1,4 @@
 node_modules
 lib
 .idea
-yarn.lock
 docs
-package-lock.json
