@@ -2,7 +2,7 @@
 
 # Reactive-Library
 
-Foobar is a TypeScript library for dealing with reactive implementations of essential data structures.
+Reactive-Library is a TypeScript library for dealing with reactive implementations of essential data structures.
 
 ## Installation
 

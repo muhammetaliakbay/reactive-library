@@ -8,6 +8,7 @@
   "scripts": {
     "clean": "rimraf ./lib",
     "build": "tsc",
+    "build-doc": "rimraf ./doc && typedoc",
     "publish-public": "npm publish --access public",
     "test": "ts-mocha src/**/*.spec.ts"
   },
@@ -20,7 +21,8 @@
     "mocha": "^8.0.1",
     "@types/mocha": "^7.0.2",
     "chai": "^4.2.0",
-    "@types/chai": "^4.2.11"
+    "@types/chai": "^4.2.11",
+    "typedoc": "^0.17.7"
   },
   "dependencies": {
     "rxjs": "^6.5.5"
