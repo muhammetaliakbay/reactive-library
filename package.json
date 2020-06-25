@@ -23,8 +23,10 @@
     "build-doc": "rimraf ./docs && typedoc",
     "test": "ts-mocha src/**/*.spec.ts",
     "prepare": "npm run clean && npm run build",
-    "prepublishOnly": "npm test",
-    "publish-public": "npm publish --access public"
+    "prepublishOnly": "npm test"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
     "tslib": "^2.0.0",
