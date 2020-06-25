@@ -1,6 +1,6 @@
 {
   "name": "@muhammetaliakbay/reactive-library",
-  "version": "0.0.0-fix4",
+  "version": "0.0.1",
   "description": "Reactive-Library is a TypeScript library for dealing with reactive implementations of essential data structures.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -14,12 +14,17 @@
     "library",
     "reactive"
   ],
+  "files": [
+    "lib/**/*"
+  ],
   "scripts": {
     "clean": "rimraf ./lib",
     "build": "tsc",
     "build-doc": "rimraf ./docs && typedoc",
-    "publish-public": "npm publish --access public",
-    "test": "ts-mocha src/**/*.spec.ts"
+    "test": "ts-mocha src/**/*.spec.ts",
+    "prepare": "npm run clean && npm run build",
+    "prepublishOnly": "npm test",
+    "publish-public": "npm publish --access public"
   },
   "devDependencies": {
     "tslib": "^2.0.0",
