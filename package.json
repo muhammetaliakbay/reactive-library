@@ -1,6 +1,6 @@
 {
   "name": "@muhammetaliakbay/reactive-library",
-  "version": "0.0.1-deploy-test",
+  "version": "0.0.2",
   "description": "Reactive-Library is a TypeScript library for dealing with reactive implementations of essential data structures.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
