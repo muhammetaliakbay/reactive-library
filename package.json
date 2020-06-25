@@ -1,0 +1,28 @@
+{
+  "name": "@muhammetaliakbay/reactive-library",
+  "version": "0.0.0",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "repository": "https://github.com/muhammetaliakbay/reactive-library",
+  "author": "https://github.com/muhammetaliakbay",
+  "scripts": {
+    "clean": "rimraf ./lib",
+    "build": "tsc",
+    "publish-public": "npm publish --access public",
+    "test": "ts-mocha src/**/*.spec.ts"
+  },
+  "devDependencies": {
+    "tslib": "^2.0.0",
+    "typescript": "^3.9.3",
+    "@types/node": "^14.0.13",
+    "rimraf": "^3.0.2",
+    "ts-mocha": "^7.0.0",
+    "mocha": "^8.0.1",
+    "@types/mocha": "^7.0.2",
+    "chai": "^4.2.0",
+    "@types/chai": "^4.2.11"
+  },
+  "dependencies": {
+    "rxjs": "^6.5.5"
+  }
+}
