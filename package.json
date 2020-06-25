@@ -8,7 +8,7 @@
   "scripts": {
     "clean": "rimraf ./lib",
     "build": "tsc",
-    "build-doc": "rimraf ./doc && typedoc",
+    "build-doc": "rimraf ./docs && typedoc",
     "publish-public": "npm publish --access public",
     "test": "ts-mocha src/**/*.spec.ts"
   },
