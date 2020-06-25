@@ -10,5 +10,5 @@ script:
 deploy:
   provider: npm
   email: $NPM_EMAIL
-  api_key: $NPM_AUTH
+  api_token: $NPM_AUTH
   skip_cleanup: true
