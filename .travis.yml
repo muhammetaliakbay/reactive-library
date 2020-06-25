@@ -14,10 +14,3 @@ deploy:
     email: $NPM_EMAIL
     api_token: $NPM_AUTH
     skip_cleanup: true
-
-  - provider: pages
-    skip_cleanup: true
-    github_token: $GITHUB_AUTH
-    keep_history: true
-    script:
-    local_dir: docs
