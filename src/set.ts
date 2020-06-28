@@ -33,14 +33,9 @@ import {fromArray} from 'rxjs/internal/observable/fromArray';
 export interface FilterPredicate<T, R extends T> {
     /**
      * @param entry - Takes element from base reactive-set to check if that if it is filtered or not.
-     * @returns Returns a boolean which filters element in or out.
+     * @returns Returns a boolean which filters element in or out. Or returns an reactive boolean result which decides element's existence in sub-set, and it can be actively changed in time
      */
-    (entry: T): entry is R;
-    /**
-     * @param entry - Takes element from base reactive-set to check if that if it is filtered or not.
-     * @returns Returns an reactive boolean result which decides element's existence in sub-set, and it can be actively changed in time
-     */
-    (entry: T): Observable<boolean>;
+    (entry: T): boolean | Observable<boolean>;
 }
 
 /**
