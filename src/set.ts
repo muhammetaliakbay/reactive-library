@@ -1,5 +1,27 @@
-import {BehaviorSubject, concat, Observable, of, OperatorFunction, Subject, throwError} from 'rxjs';
-import {filter, mapTo, switchMap} from 'rxjs/operators';
+import {
+    BehaviorSubject,
+    concat,
+    EMPTY,
+    merge,
+    Observable,
+    of,
+    OperatorFunction, race,
+    ReplaySubject,
+    Subject,
+    throwError
+} from 'rxjs';
+import {
+    distinctUntilChanged,
+    filter,
+    flatMap,
+    map,
+    mapTo,
+    mergeAll,
+    mergeMap,
+    scan,
+    share,
+    switchMap, takeUntil
+} from 'rxjs/operators';
 import {fromArray} from 'rxjs/internal/observable/fromArray';
 
 /**
@@ -17,7 +39,6 @@ export interface FilterPredicate<T, R extends T> {
     /**
      * @param entry - Takes element from base reactive-set to check if that if it is filtered or not.
      * @returns Returns an reactive boolean result which decides element's existence in sub-set, and it can be actively changed in time
-     * @beta
      */
     (entry: T): Observable<boolean>;
 }
@@ -88,25 +109,60 @@ abstract class BaseReactiveSet<T> implements ReadonlyReactiveSet<T> {
 /**
  * @internal
  */
-function reactiveFilter<T, R extends T>(filterPredicate: FilterPredicate<T, R>): OperatorFunction<T, R> {
-    const nonReactivePredicate: (element: T) => boolean = element => {
+function toReactivePredicate<T, R extends T>(filterPredicate: FilterPredicate<T, R>): (element: T) => Observable<boolean> {
+    return element => {
         const result = filterPredicate(element) as boolean | Observable<boolean>;
         if (result instanceof Observable) {
-            return false;
-        } else {
             return result;
+        } else {
+            return of(result);
         }
     };
-
-    return (input$) => input$.pipe(
-        filter<T, R>(nonReactivePredicate as (value: T) => value is R)
-    )
 }
 
 /**
  * @internal
  */
-class FilteredReactiveSet<T, R extends T> extends BaseReactiveSet<T> {
+class FilteredReactiveSet<T, R extends T> extends BaseReactiveSet<R> {
+    private filtered$ = new Observable<ReadonlyReactiveSet<R>>(subscriber => {
+        const reactivePredicate = toReactivePredicate(this.predicate);
+
+        const clean$ = new ReplaySubject<void>(1);
+
+        const filtered = new ReactiveSet<R>();
+        merge(
+            this.source.in$.pipe(map<T, [boolean, R]>(element => [true, element as R])),
+            this.source.add$.pipe(map<T, [boolean, R]>(element => [true, element as R])),
+            this.source.remove$.pipe(map<T, [boolean, R]>(element => [false, element as R]))
+        )
+            .pipe(takeUntil(clean$))
+            .subscribe(([has, element]) => {
+                if (has) {
+                    reactivePredicate(element).pipe(
+                        takeUntil(
+                            race(
+                                clean$,
+                                this.source.remove$.pipe(filter(removedElement => removedElement === element)))
+                        )
+                    ).subscribe(predicatedHas => {
+                        if (predicatedHas) {
+                            filtered.add(element);
+                        } else {
+                            filtered.remove(element);
+                        }
+                    });
+                } else {
+                    filtered.remove(element);
+                }
+        });
+
+        return () => {
+            clean$.complete();
+        }
+    }).pipe(
+        share() // this is important. share() make us sure that there is only one filtered-copy of original set at a time
+    );
+
     constructor(
         readonly source: ReadonlyReactiveSet<T>,
         readonly predicate: FilterPredicate<T, R>
@@ -114,16 +170,16 @@ class FilteredReactiveSet<T, R extends T> extends BaseReactiveSet<T> {
         super();
     }
 
-    readonly remove$ = this.source.remove$.pipe(reactiveFilter(this.predicate));
-    readonly add$ = this.source.add$.pipe(reactiveFilter(this.predicate));
-    readonly in$ = this.source.in$.pipe(reactiveFilter(this.predicate));
-    readonly length$ = throwError(new Error('not implemented yet'));
-    has$(entry: T): Observable<boolean> {
-        return this.predicate(entry) ? this.source.has$(entry) : of(false);
+    readonly remove$ = this.filtered$.pipe(switchMap(filtered => filtered.remove$));
+    readonly add$ = this.filtered$.pipe(switchMap(filtered => filtered.add$));
+    readonly in$ = this.filtered$.pipe(switchMap(filtered => filtered.in$));
+    readonly length$ = this.filtered$.pipe(switchMap(filtered => filtered.length$));
+    has$(entry: R): Observable<boolean> {
+        return this.filtered$.pipe(switchMap(filtered => filtered.has$(entry)));
     }
 
-    filter<R extends T>(predicate: FilterPredicate<T, R>): ReadonlyReactiveSet<R> {
-        return new FilteredReactiveSet<T, R>(this, predicate);
+    filter<R2 extends R>(predicate: FilterPredicate<R, R2>): ReadonlyReactiveSet<R2> {
+        return new FilteredReactiveSet<R, R2>(this, predicate);
     }
 }
 
