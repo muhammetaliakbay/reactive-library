@@ -39,7 +39,7 @@ export interface FilterPredicate<T, R extends T> {
 }
 
 /**
- *  Defines fields and methods which required to implement an essential readonly-reactive-set
+ * Defines fields and methods which required to implement an essential readonly-reactive-set
  *
  * @typeParam T - Type of the elements in reactive-set
  */
@@ -150,6 +150,8 @@ class FilteredReactiveSet<T, R extends T> extends BaseReactiveSet<R> {
                     filtered.remove(element);
                 }
         });
+
+        subscriber.next(filtered);
 
         return () => {
             clean$.complete();
