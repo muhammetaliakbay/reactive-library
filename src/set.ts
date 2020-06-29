@@ -101,6 +101,8 @@ function flatten<T>(
 
         const set = new Set<T>();
 
+        subscriber.next(set);
+
         merge(
             in$.pipe(map(element => ({type: 'in' as const, element}))),
             remove$.pipe(map(element => ({type: 'remove' as const, element}))),
@@ -115,12 +117,12 @@ function flatten<T>(
                 } else {
                     throw new Error('bug.');
                 }
-                subscriber.next(new Set<T>(set));
+                subscriber.next(set);
             }
         );
 
         return () => clean$.complete();
-    }).pipe(shareReplay(1));
+    }).pipe(shareReplay(1), map(set => new Set<T>(set)));
 }
 
 /**
