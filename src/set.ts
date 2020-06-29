@@ -19,7 +19,7 @@ import {
     mergeAll,
     mergeMap,
     scan,
-    share,
+    share, shareReplay,
     switchMap, takeUntil
 } from 'rxjs/operators';
 import {fromArray} from 'rxjs/internal/observable/fromArray';
@@ -60,7 +60,12 @@ export interface ReadonlyReactiveSet<T> {
     readonly in$: Observable<T>;
 
     /**
-     *  Returns a reactive-stream which emits entry's current and future statuses
+     * Emits flat version of live reactive-set. Every emitted set is different objects.
+     */
+    readonly flat$: Observable<ReadonlySet<T>>;
+
+    /**
+     * Returns a reactive-stream which emits entry's current and future statuses
      * @param entry - Entry to check if it is in the set or not
      *
      * @returns Reactive-stream which emits entry's current and future statuses
@@ -73,7 +78,7 @@ export interface ReadonlyReactiveSet<T> {
     length$: Observable<number>;
 
     /**
-     *  Returns a READONLY reactive-subset which is filtered by the predicate function
+     * Returns a READONLY reactive-subset which is filtered by the predicate function
      *
      * @typeParam R - Desired element type (which extends element type T of main set) of filtered subset
      *
@@ -88,6 +93,39 @@ export interface ReadonlyReactiveSet<T> {
 /**
  * @internal
  */
+function flatten<T>(
+    in$: Observable<T>, remove$: Observable<T>
+): Observable<ReadonlySet<T>> {
+    return new Observable<Set<T>>(subscriber => {
+        const clean$ = new ReplaySubject<void>(1);
+
+        const set = new Set<T>();
+
+        merge(
+            in$.pipe(map(element => ({type: 'in' as const, element}))),
+            remove$.pipe(map(element => ({type: 'remove' as const, element}))),
+        ).pipe(
+            takeUntil(clean$)
+        ).subscribe(
+            event => {
+                if (event.type === 'in') {
+                    set.add(event.element);
+                } else if (event.type === 'remove') {
+                    set.delete(event.element);
+                } else {
+                    throw new Error('bug.');
+                }
+                subscriber.next(new Set<T>(set));
+            }
+        );
+
+        return () => clean$.complete();
+    }).pipe(shareReplay(1));
+}
+
+/**
+ * @internal
+ */
 abstract class BaseReactiveSet<T> implements ReadonlyReactiveSet<T> {
     filter<R extends T>(predicate: FilterPredicate<T, R>): ReadonlyReactiveSet<R> {
         return new FilteredReactiveSet<T, R>(this, predicate);
@@ -97,6 +135,8 @@ abstract class BaseReactiveSet<T> implements ReadonlyReactiveSet<T> {
     abstract readonly in$: Observable<T>;
     abstract length$: Observable<number>;
     abstract readonly remove$: Observable<T>;
+
+    abstract readonly flat$: Observable<ReadonlySet<T>>;
 
     abstract has$(entry: T): Observable<boolean>;
 }
@@ -160,6 +200,13 @@ class FilteredReactiveSet<T, R extends T> extends BaseReactiveSet<R> {
         share() // this is important. share() make us sure that there is only one filtered-copy of original set at a time
     );
 
+    readonly remove$ = this.filtered$.pipe(switchMap(filtered => filtered.remove$));
+    readonly add$ = this.filtered$.pipe(switchMap(filtered => filtered.add$));
+    readonly in$ = this.filtered$.pipe(switchMap(filtered => filtered.in$));
+    readonly length$ = this.filtered$.pipe(switchMap(filtered => filtered.length$));
+
+    readonly flat$ = flatten(this.in$, this.remove$);
+
     constructor(
         readonly source: ReadonlyReactiveSet<T>,
         readonly predicate: FilterPredicate<T, R>
@@ -167,10 +214,6 @@ class FilteredReactiveSet<T, R extends T> extends BaseReactiveSet<R> {
         super();
     }
 
-    readonly remove$ = this.filtered$.pipe(switchMap(filtered => filtered.remove$));
-    readonly add$ = this.filtered$.pipe(switchMap(filtered => filtered.add$));
-    readonly in$ = this.filtered$.pipe(switchMap(filtered => filtered.in$));
-    readonly length$ = this.filtered$.pipe(switchMap(filtered => filtered.length$));
     has$(entry: R): Observable<boolean> {
         return this.filtered$.pipe(switchMap(filtered => filtered.has$(entry)));
     }
@@ -207,6 +250,11 @@ export class ReactiveSet<T> extends BaseReactiveSet<T> {
      */
     readonly length$: Observable<number> = this.lengthSubject.asObservable();
 
+    /**
+     * @inheritDoc
+     */
+    readonly flat$ = flatten(this.in$, this.remove$);
+
     private readonly entries: T[] = [];
 
     /**
@@ -217,6 +265,10 @@ export class ReactiveSet<T> extends BaseReactiveSet<T> {
             fromArray(this.entries),
             this.add$
         );
+
+    constructor() {
+        super();
+    }
 
     private has(entry: T): boolean {
         return this.entries.includes(entry);
