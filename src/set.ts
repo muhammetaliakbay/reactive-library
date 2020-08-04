@@ -11,16 +11,17 @@ import {
     throwError
 } from 'rxjs';
 import {
-    distinctUntilChanged,
-    filter,
-    flatMap,
+    catchError,
+    distinctUntilChanged, endWith,
+    filter, finalize,
+    flatMap, ignoreElements,
     map,
     mapTo,
     mergeAll,
     mergeMap,
     scan,
     share, shareReplay,
-    switchMap, takeUntil
+    switchMap, takeUntil, tap
 } from 'rxjs/operators';
 import {fromArray} from 'rxjs/internal/observable/fromArray';
 
@@ -36,6 +37,20 @@ export interface FilterPredicate<T, R extends T> {
      * @returns Returns a boolean which filters element in or out. Or returns an reactive boolean result which decides element's existence in sub-set, and it can be actively changed in time
      */
     (entry: T): boolean | Observable<boolean>;
+}
+
+/**
+ * Defines callback which applied while converting elements to desired type before adding into mapped reactive-set
+ *
+ * @typeParam T - Defines element type of base reactive-set
+ * @typeParam R - Defines element type of mapped reactive-set
+ */
+export interface ConverterFunction<T, R> {
+    /**
+     * @param entry - Takes element from base reactive-set to convert to desired type.
+     * @returns Returns a reactive conversion result from T to R, and it can be actively changed in time
+     */
+    (entry: T): Observable<R>;
 }
 
 /**
@@ -88,6 +103,18 @@ export interface ReadonlyReactiveSet<T> {
      * @beta
      */
     filter<R extends T>(predicate: FilterPredicate<T, R>): ReadonlyReactiveSet<R>;
+
+    /**
+     * Returns a READONLY reactive-set which is mapped using the converter function
+     *
+     * @typeParam R - Desired element type of mapped set
+     *
+     * @param converter - Converter function to map source reactive-set
+     * @returns Mapped reactive-set of this reactive-set
+     *
+     * @beta
+     */
+    map<R>(converter: ConverterFunction<T, R>): ReadonlyReactiveSet<R>;
 }
 
 /**
@@ -133,6 +160,10 @@ abstract class BaseReactiveSet<T> implements ReadonlyReactiveSet<T> {
         return new FilteredReactiveSet<T, R>(this, predicate);
     }
 
+    map<R>(converter: ConverterFunction<T, R>): ReadonlyReactiveSet<R> {
+        return new MappedReactiveSet<T, R>(this, converter);
+    }
+
     abstract readonly add$: Observable<T>;
     abstract readonly in$: Observable<T>;
     abstract length$: Observable<number>;
@@ -169,17 +200,19 @@ class FilteredReactiveSet<T, R extends T> extends BaseReactiveSet<R> {
         const filtered = new ReactiveSet<R>();
         merge(
             this.source.in$.pipe(map<T, [boolean, R]>(element => [true, element as R])),
-            this.source.add$.pipe(map<T, [boolean, R]>(element => [true, element as R])),
             this.source.remove$.pipe(map<T, [boolean, R]>(element => [false, element as R]))
         )
             .pipe(takeUntil(clean$))
-            .subscribe(([has, element]) => {
-                if (has) {
+            .subscribe(([exists, element]) => {
+                if (exists) {
                     reactivePredicate(element).pipe(
                         takeUntil(
                             race(
                                 clean$,
-                                this.source.remove$.pipe(filter(removedElement => removedElement === element)))
+                                this.source.remove$.pipe(
+                                    filter(removedElement => removedElement === element)
+                                )
+                            )
                         )
                     ).subscribe(predicatedHas => {
                         if (predicatedHas) {
@@ -222,6 +255,76 @@ class FilteredReactiveSet<T, R extends T> extends BaseReactiveSet<R> {
 
     filter<R2 extends R>(predicate: FilterPredicate<R, R2>): ReadonlyReactiveSet<R2> {
         return new FilteredReactiveSet<R, R2>(this, predicate);
+    }
+}
+
+/**
+ * @internal
+ */
+class MappedReactiveSet<T, R> extends BaseReactiveSet<R> {
+    private mapped$ = new Observable<ReadonlyReactiveSet<R>>(subscriber => {
+        const clean$ = new ReplaySubject<void>(1);
+
+        const mapped = new ReactiveSet<R>();
+        merge(
+            this.source.in$
+        )
+            .pipe(takeUntil(clean$))
+            .subscribe(sourceElement => {
+                let hasLast = false;
+                let last: R;
+
+                concat(
+                    this.converter(sourceElement).pipe(
+                        takeUntil(
+                            race(
+                                clean$,
+                                this.source.remove$.pipe(
+                                    filter(removedElement => removedElement === sourceElement)
+                                )
+                            ).pipe(ignoreElements())
+                        ),
+                        map(conversion => [true, conversion] as const)
+                    ),
+                    of([false] as const)
+                ).subscribe(([exists, conversion]) => {
+                    if(hasLast) {
+                        mapped.remove(last);
+                        hasLast = false;
+                    }
+                    if (exists) {
+                        mapped.add(conversion as R);
+                        last = conversion as R;
+                        hasLast = true;
+                    }
+                });
+            });
+
+        subscriber.next(mapped);
+
+        return () => {
+            clean$.complete();
+        }
+    }).pipe(
+        share() // this is important. share() make us sure that there is only one mapped-copy of original set at a time
+    );
+
+    readonly remove$ = this.mapped$.pipe(switchMap(mapped => mapped.remove$));
+    readonly add$ = this.mapped$.pipe(switchMap(mapped => mapped.add$));
+    readonly in$ = this.mapped$.pipe(switchMap(mapped => mapped.in$));
+    readonly length$ = this.mapped$.pipe(switchMap(mapped => mapped.length$));
+
+    readonly flat$ = flatten(this.in$, this.remove$);
+
+    constructor(
+        readonly source: ReadonlyReactiveSet<T>,
+        readonly converter: ConverterFunction<T, R>
+    ) {
+        super();
+    }
+
+    has$(entry: R): Observable<boolean> {
+        return this.mapped$.pipe(switchMap(mapped => mapped.has$(entry)));
     }
 }
 
